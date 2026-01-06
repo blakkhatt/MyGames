@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fractal Battle Arena</title>
+    <style>
+        canvas { border: 1px solid black; }
+        #battleLog { font-family: monospace; height: 300px; overflow-y: scroll; }
+    </style>
+</head>
+<body>
+    <h1>Live Fractal Battle</h1>
+    <canvas id="canvas1" width="400" height="400"></canvas>
+    <canvas id="canvas2" width="400" height="400"></canvas>
+    <div id="battleLog"></div>
+    <script>
+        const canvas1 = document.getElementById('canvas1');
+        const ctx1 = canvas1.getContext('2d');
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+        const log = document.getElementById('battleLog');
+
+        // Fractal functions
+        function mandelbrot(width, height, maxIter, zoom, centerX, centerY) {
+            const imageData = ctx1.createImageData(width, height);
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    const zx = (x - width / 2) / (width / 4 / zoom) + centerX;
+                    const zy = (y - height / 2) / (height / 4 / zoom) + centerY;
+                    let z = { re: 0, im: 0 };
+                    let c = { re: zx, im: zy };
+                    let iter = 0;
+                    while (z.re * z.re + z.im * z.im < 4 && iter < maxIter) {
+                        const temp = z.re * z.re - z.im * z.im + c.re;
+                        z.im = 2 * z.re * z.im + c.im;
+                        z.re = temp;
+                        iter++;
+                    }
+                    const color = iter === maxIter ? 0 : Math.floor(255 * iter / maxIter);
+                    const index = (y * width + x) * 4;
+                    imageData.data[index] = color;
+                    imageData.data[index + 1] = color * 0.5;
+                    imageData.data[index + 2] = color * 0.8;
+                    imageData.data[index + 3] = 255;
+                }
+            }
+            ctx1.putImageData(imageData, 0, 0);
+        }
+
+        function julia(width, height, maxIter, cRe, cIm) {
+            const imageData = ctx2.createImageData(width, height);
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let z = { re: (x - width / 2) / (width / 4), im: (y - height / 2) / (height / 4) };
+                    let iter = 0;
+                    while (z.re * z.re + z.im * z.im < 4 && iter < maxIter) {
+                        const temp = z.re * z.re - z.im * z.im + cRe;
+                        z.im = 2 * z.re * z.im + cIm;
+                        z.re = temp;
+                        iter++;
+                    }
+                    const color = iter === maxIter ? 0 : Math.floor(255 * iter / maxIter);
+                    const index = (y * width + x) * 4;
+                    imageData.data[index] = color * 0.8;
+                    imageData.data[index + 1] = color;
+                    imageData.data[index + 2] = color * 0.5;
+                    imageData.data[index + 3] = 255;
+                }
+            }
+            ctx2.putImageData(imageData, 0, 0);
+        }
+
+        // Fighters
+        let babies = { name: 'Babies Mandelbrot', health: 100, power: 20, defense: 5, ability: 'Deep Zoom', used: false };
+        let juliaF = { name: 'Julia Sets', health: 100, power: 18, defense: 4, ability: 'Iterate Heal', used: false };
+
+        function attack(attacker, defender) {
+            const damage = Math.max(0, Math.random() * attacker.power - defender.defense);
+            defender.health -= damage;
+            log.innerHTML += `${attacker.name} attacks ${defender.name} for ${damage.toFixed(1)} damage!<br>`;
+            if (defender.health <= 0) {
+                log.innerHTML += `${defender.name} is defeated!<br>`;
+                return true;
+            }
+            return false;
+        }
+
+        function useAbility(fighter, opponent) {
+            if (fighter.used) return false;
+            fighter.used = true;
+            if (fighter.ability === 'Deep Zoom') {
+                fighter.power *= 1.5;
+                log.innerHTML += `${fighter.name} uses Deep Zoom! Power increased!<br>`;
+            } else if (fighter.ability === 'Iterate Heal') {
+                fighter.health = Math.min(100, fighter.health + 30);
+                log.innerHTML += `${fighter.name} uses Iterate Heal! Healed!<br>`;
+            }
+            return false;
+        }
+
+        function aiTurn(fighter, opponent) {
+            const defendProb = fighter.health < 50 ? 0.7 : 0.3;
+            const abilityProb = !fighter.used && fighter.health < 70 ? 0.3 : 0;
+            const r = Math.random();
+            if (r < defendProb) {
+                log.innerHTML += `${fighter.name} defends!<br>`;
+                return false;
+            } else if (r < defendProb + abilityProb) {
+                return useAbility(fighter, opponent);
+            } else {
+                return attack(fighter, opponent);
+            }
+        }
+
+        // Animation
+        let turn = 0;
+        let zoom = 1;
+        let centerX = -0.5;
+        let centerY = 0;
+        let cRe = -0.7;
+        let cIm = 0.27015;
+
+        function animate() {
+            turn++;
+            zoom += 0.05;
+            centerX += 0.005;
+            cRe += 0.01;
+            cIm += 0.005;
+
+            mandelbrot(400, 400, 100, zoom, centerX, centerY);
+            julia(400, 400, 100, cRe, cIm);
+
+            log.innerHTML += `<br>Turn ${turn}<br>`;
+            log.innerHTML += `${babies.name} health: ${babies.health.toFixed(1)}<br>`;
+            log.innerHTML += `${juliaF.name} health: ${juliaF.health.toFixed(1)}<br>`;
+
+            if (babies.health > 0 && juliaF.health > 0) {
+                if (aiTurn(babies, juliaF)) return;
+                if (aiTurn(juliaF, babies)) return;
+            } else {
+                log.innerHTML += babies.health > 0 ? `${babies.name} wins!<br>` : `${juliaF.name} wins!<br>`;
+                return;
+            }
+
+            setTimeout(animate, 1000);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

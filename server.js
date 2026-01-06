@@ -20,20 +20,7 @@ const server = http.createServer((req, res) => {
         });
     } else {
         res.writeHead(200, {'Content-Type': 'text/html'});
-        res.end(`
-            <html>
-            <head><title>Fractal Battle Video</title></head>
-            <body>
-                <h1>Fractal Battle: Babies Mandelbrot vs Julia Sets</h1>
-                <p>Watch the AI-driven battle between mathematical fractals!</p>
-                <video controls width="800" height="400">
-                    <source src="/battle.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                <p>Generated with Julia, served with Node.js.</p>
-            </body>
-            </html>
-        `);
+        res.end(fs.readFileSync('index.html', 'utf8'));
     }
 });
 
