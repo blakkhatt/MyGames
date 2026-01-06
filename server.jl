@@ -87,9 +87,8 @@ function handler(req)
         """
         return HTTP.Response(200, ["Content-Type" => "text/html"], html)
     elseif req.target == "/battle"
-        io = IOBuffer()
-        old_stdout = stdout
-        redirect_stdout(io)
+        pipe = Pipe()
+        redirect_stdout(pipe)
         try
             fighters = [
                 FractalFighter("Babies Mandelbrot", 100.0, 20.0),
@@ -99,9 +98,10 @@ function handler(req)
             ]
             tournament(fighters)
         finally
-            redirect_stdout(old_stdout)
+            close(pipe.in)
+            redirect_stdout(stdout)
         end
-        output = String(take!(io))
+        output = read(pipe.out, String)
         html = "<pre>$output</pre><br><a href='/'>Back</a>"
         return HTTP.Response(200, ["Content-Type" => "text/html"], html)
     elseif occursin(".png", req.target)

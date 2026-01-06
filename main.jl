@@ -96,36 +96,73 @@ function ai_turn(fighter::FractalFighter, opponent::FractalFighter)
     end
 end
 
-# AI turn for both
+# AI turn
 function ai_turn(fighter::FractalFighter, opponent::FractalFighter)
-    if rand() > 0.5
-        return attack(fighter, opponent)
-    else
+    defend_prob = fighter.health < 50 ? 0.7 : 0.3
+    if rand() < defend_prob
         println("$(fighter.name) defends!")
+        return false
+    else
+        return attack(fighter, opponent)
+    end
+end
+
+# Player turn with input
+function player_turn(player::FractalFighter, opponent::FractalFighter)
+    println("Your turn! Choose: (a)ttack or (d)efend")
+    choice = readline()
+    if choice == "a"
+        return attack(player, opponent)
+    else
+        println("$(player.name) defends!")
         return false
     end
 end
 
-# Game loop - fully AI
-function battle(player::FractalFighter, enemy::FractalFighter)
+# AI battle
+function ai_battle(player::FractalFighter, enemy::FractalFighter)
     turn = 1
     while player.health > 0 && enemy.health > 0
         println("\nTurn $turn")
         println("$(player.name) health: $(player.health)")
         println("$(enemy.name) health: $(enemy.health)")
         
-        # Player AI turn
         if ai_turn(player, enemy)
             break
         end
         
-        # Enemy AI turn
         if ai_turn(enemy, player)
             break
         end
         
         turn += 1
-        sleep(1)  # Slow down for viewing
+        sleep(1)
+    end
+    
+    if player.health > 0
+        println("\n$(player.name) wins!")
+    else
+        println("\n$(enemy.name) wins!")
+    end
+end
+
+# Interactive player battle
+function player_battle(player::FractalFighter, enemy::FractalFighter)
+    turn = 1
+    while player.health > 0 && enemy.health > 0
+        println("\nTurn $turn")
+        println("$(player.name) health: $(player.health)")
+        println("$(enemy.name) health: $(enemy.health)")
+        
+        if player_turn(player, enemy)
+            break
+        end
+        
+        if ai_turn(enemy, player)
+            break
+        end
+        
+        turn += 1
     end
     
     if player.health > 0
@@ -139,5 +176,11 @@ end
 babies_mandelbrot = FractalFighter("Babies Mandelbrot", 100.0, 20.0)
 julia_sets = FractalFighter("Julia Sets", 100.0, 18.0)
 
-# Start battle
-battle(babies_mandelbrot, julia_sets)
+# Choose mode
+println("Choose mode: (i)nteractive player battle or (a)i demo")
+mode = readline()
+if mode == "i"
+    player_battle(babies_mandelbrot, julia_sets)
+else
+    ai_battle(babies_mandelbrot, julia_sets)
+end
