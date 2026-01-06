@@ -12,6 +12,11 @@
     <canvas id="canvas1" width="400" height="400"></canvas>
     <canvas id="canvas2" width="400" height="400"></canvas>
     <div id="battleLog"></div>
+    <div id="controls">
+        <button id="attackBtn">Attack</button>
+        <button id="defendBtn">Defend</button>
+        <button id="abilityBtn">Use Ability</button>
+    </div>
     <script>
         const canvas1 = document.getElementById('canvas1');
         const ctx1 = canvas1.getContext('2d');
@@ -111,7 +116,12 @@
             }
         }
 
-        // Animation
+        let playerAction = null;
+        document.getElementById('attackBtn').addEventListener('click', () => playerAction = 'attack');
+        document.getElementById('defendBtn').addEventListener('click', () => playerAction = 'defend');
+        document.getElementById('abilityBtn').addEventListener('click', () => playerAction = 'ability');
+
+        // Interactive battle
         let turn = 0;
         let zoom = 1;
         let centerX = -0.5;
@@ -119,32 +129,57 @@
         let cRe = -0.7;
         let cIm = 0.27015;
 
-        function animate() {
-            turn++;
-            zoom += 0.05;
-            centerX += 0.005;
-            cRe += 0.01;
-            cIm += 0.005;
-
-            mandelbrot(400, 400, 100, zoom, centerX, centerY);
-            julia(400, 400, 100, cRe, cIm);
-
-            log.innerHTML += `<br>Turn ${turn}<br>`;
+        function runTurn() {
+            log.innerHTML += `<br>Turn ${turn + 1}<br>`;
             log.innerHTML += `${babies.name} health: ${babies.health.toFixed(1)}<br>`;
             log.innerHTML += `${juliaF.name} health: ${juliaF.health.toFixed(1)}<br>`;
 
-            if (babies.health > 0 && juliaF.health > 0) {
-                if (aiTurn(babies, juliaF)) return;
-                if (aiTurn(juliaF, babies)) return;
-            } else {
-                log.innerHTML += babies.health > 0 ? `${babies.name} wins!<br>` : `${juliaF.name} wins!<br>`;
-                return;
-            }
+            // Enable buttons
+            document.getElementById('attackBtn').disabled = false;
+            document.getElementById('defendBtn').disabled = false;
+            document.getElementById('abilityBtn').disabled = false;
 
-            setTimeout(animate, 1000);
+            const waitForAction = () => {
+                if (playerAction) {
+                    document.getElementById('attackBtn').disabled = true;
+                    document.getElementById('defendBtn').disabled = true;
+                    document.getElementById('abilityBtn').disabled = true;
+
+                    let defeated = false;
+                    if (playerAction === 'attack') {
+                        defeated = attack(babies, juliaF);
+                    } else if (playerAction === 'defend') {
+                        log.innerHTML += `${babies.name} defends!<br>`;
+                    } else if (playerAction === 'ability') {
+                        defeated = useAbility(babies, juliaF);
+                    }
+
+                    playerAction = null;
+
+                    if (!defeated) {
+                        defeated = aiTurn(juliaF, babies);
+                    }
+
+                    if (!defeated) {
+                        turn++;
+                        zoom += 0.05;
+                        centerX += 0.005;
+                        cRe += 0.01;
+                        cIm += 0.005;
+                        mandelbrot(400, 400, 100, zoom, centerX, centerY);
+                        julia(400, 400, 100, cRe, cIm);
+                        setTimeout(runTurn, 500);
+                    } else {
+                        log.innerHTML += babies.health > 0 ? `${babies.name} wins!<br>` : `${juliaF.name} wins!<br>`;
+                    }
+                } else {
+                    setTimeout(waitForAction, 100);
+                }
+            };
+            waitForAction();
         }
 
-        animate();
+        runTurn();
     </script>
 </body>
 </html>
