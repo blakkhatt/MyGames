@@ -39,6 +39,26 @@ function julia(h, w, max_iter, c)
     return m
 end
 
+# Function to generate Burning Ship fractal
+function burning_ship(h, w, max_iter)
+    y = range(-1.8, 0.8, length=h)
+    x = range(-2.5, 1.0, length=w)
+    m = zeros(h, w)
+    for i in 1:h
+        for j in 1:w
+            c = x[j] + im * y[i]
+            z = 0 + 0im
+            iter = 0
+            while abs(z) < 2 && iter < max_iter
+                z = (abs(real(z)) + im * abs(imag(z)))^2 + c
+                iter += 1
+            end
+            m[i, j] = iter
+        end
+    end
+    return m
+end
+
 # Plot Mandelbrot
 m = mandelbrot(400, 400, 100)
 plot(heatmap(m, color=:viridis, title="Babies Mandelbrot"))
