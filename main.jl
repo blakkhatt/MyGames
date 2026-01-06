@@ -1,4 +1,4 @@
-using Plots
+using Plots, VideoIO, FileIO
 
 # Function to generate Mandelbrot set
 function mandelbrot(h, w, max_iter)
@@ -119,13 +119,22 @@ function player_turn(player::FractalFighter, opponent::FractalFighter)
     end
 end
 
-# AI battle
+# AI battle with video frames
 function ai_battle(player::FractalFighter, enemy::FractalFighter)
+    if !isdir("frames")
+        mkdir("frames")
+    end
     turn = 1
     while player.health > 0 && enemy.health > 0
         println("\nTurn $turn")
         println("$(player.name) health: $(player.health)")
         println("$(enemy.name) health: $(enemy.health)")
+        
+        # Create frame
+        p1 = heatmap(mandelbrot(200, 200, 50), color=:viridis, title="$(player.name)\nHealth: $(round(player.health, digits=1))")
+        p2 = heatmap(julia(200, 200, 50, -0.7 + 0.27015im), color=:plasma, title="$(enemy.name)\nHealth: $(round(enemy.health, digits=1))")
+        p = plot(p1, p2, layout=(1,2), size=(800,400))
+        savefig(p, "frames/frame_$(lpad(turn, 3, '0')).png")
         
         if ai_turn(player, enemy)
             break
@@ -136,14 +145,27 @@ function ai_battle(player::FractalFighter, enemy::FractalFighter)
         end
         
         turn += 1
-        sleep(1)
+        sleep(0.5)
     end
+    
+    # Final frame
+    winner = player.health > 0 ? player : enemy
+    p1 = heatmap(mandelbrot(200, 200, 50), color=:viridis, title="$(player.name)\nHealth: $(round(player.health, digits=1))")
+    p2 = heatmap(julia(200, 200, 50, -0.7 + 0.27015im), color=:plasma, title="$(enemy.name)\nHealth: $(round(enemy.health, digits=1))")
+    p = plot(p1, p2, layout=(1,2), size=(800,400), plot_title="$(winner.name) Wins!")
+    savefig(p, "frames/frame_$(lpad(turn, 3, '0')).png")
     
     if player.health > 0
         println("\n$(player.name) wins!")
     else
         println("\n$(enemy.name) wins!")
     end
+    
+    # Create video
+    frame_files = sort([f for f in readdir("frames") if endswith(f, ".png")])
+    imgs = [load("frames/$f") for f in frame_files]
+    VideoIO.save("battle.mp4", imgs, framerate=2)
+    println("Video saved as battle.mp4")
 end
 
 # Interactive player battle
