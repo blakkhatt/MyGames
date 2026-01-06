@@ -69,7 +69,7 @@ j = julia(400, 400, 100, c)
 plot(heatmap(j, color=:plasma, title="Julia Set"))
 
 # Simple battle simulation
-struct FractalFighter
+mutable struct FractalFighter
     name::String
     health::Float64
     power::Float64
