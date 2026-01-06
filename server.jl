@@ -1,5 +1,8 @@
 using HTTP, Plots
 
+# Set headless backend for saving plots
+ENV["GKSwstype"] = "nul"
+
 # Include game logic
 include("main.jl")
 
