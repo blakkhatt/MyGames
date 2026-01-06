@@ -91,10 +91,10 @@ function handler(req)
         redirect_stdout(pipe)
         try
             fighters = [
-                FractalFighter("Babies Mandelbrot", 100.0, 20.0),
-                FractalFighter("Julia Sets", 100.0, 18.0),
-                FractalFighter("Burning Ship", 100.0, 22.0),
-                FractalFighter("Julia Variant", 100.0, 19.0)
+                FractalFighter("Babies Mandelbrot", 100.0, 100.0, 20.0, 5.0, "Deep Zoom", false),
+                FractalFighter("Julia Sets", 100.0, 100.0, 18.0, 4.0, "Iterate Heal", false),
+                FractalFighter("Burning Ship", 100.0, 100.0, 22.0, 6.0, "Burning Burst", false),
+                FractalFighter("Julia Variant", 100.0, 100.0, 19.0, 3.0, "Variant Shift", false)
             ]
             tournament(fighters)
         finally

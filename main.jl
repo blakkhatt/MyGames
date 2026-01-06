@@ -68,17 +68,22 @@ c = -0.7 + 0.27015im
 j = julia(400, 400, 100, c)
 plot(heatmap(j, color=:plasma, title="Julia Set"))
 
-# Simple battle simulation
+# Enhanced battle simulation
 mutable struct FractalFighter
     name::String
     health::Float64
+    max_health::Float64
     power::Float64
+    defense::Float64
+    ability::String
+    ability_used::Bool
 end
 
 function attack(attacker::FractalFighter, defender::FractalFighter)
-    damage = rand() * attacker.power
+    base_damage = rand() * attacker.power
+    damage = max(0, base_damage - defender.defense)
     defender.health -= damage
-    println("$(attacker.name) attacks $(defender.name) for $damage damage!")
+    println("$(attacker.name) attacks $(defender.name) for $(round(damage, digits=1)) damage!")
     if defender.health <= 0
         println("$(defender.name) is defeated!")
         return true
@@ -86,26 +91,45 @@ function attack(attacker::FractalFighter, defender::FractalFighter)
     return false
 end
 
-# AI logic: simple random choice
+function use_ability(fighter::FractalFighter, opponent::FractalFighter)
+    if fighter.ability_used
+        return false
+    end
+    fighter.ability_used = true
+    if fighter.ability == "Deep Zoom"
+        fighter.power *= 1.5
+        println("$(fighter.name) uses Deep Zoom! Power increased!")
+    elseif fighter.ability == "Iterate Heal"
+        heal = fighter.max_health * 0.3
+        fighter.health = min(fighter.max_health, fighter.health + heal)
+        println("$(fighter.name) uses Iterate Heal! Healed for $heal health!")
+    elseif fighter.ability == "Burning Burst"
+        damage = rand() * 30
+        opponent.health -= damage
+        println("$(fighter.name) uses Burning Burst! Deals $damage extra damage!")
+    elseif fighter.ability == "Variant Shift"
+        fighter.defense *= 1.5
+        println("$(fighter.name) uses Variant Shift! Defense increased!")
+    end
+    return false
+end
+
+# Improved AI with abilities
 function ai_turn(fighter::FractalFighter, opponent::FractalFighter)
-    if rand() > 0.5
-        return attack(fighter, opponent)
-    else
+    defend_prob = fighter.health / fighter.max_health < 0.5 ? 0.6 : 0.2
+    ability_prob = !fighter.ability_used && fighter.health / fighter.max_health < 0.7 ? 0.3 : 0.0
+    r = rand()
+    if r < defend_prob
         println("$(fighter.name) defends!")
         return false
+    elseif r < defend_prob + ability_prob
+        return use_ability(fighter, opponent)
+    else
+        return attack(fighter, opponent)
     end
 end
 
-# AI turn
-function ai_turn(fighter::FractalFighter, opponent::FractalFighter)
-    defend_prob = fighter.health < 50 ? 0.7 : 0.3
-    if rand() < defend_prob
-        println("$(fighter.name) defends!")
-        return false
-    else
-        return attack(fighter, opponent)
-    end
-end
+
 
 # Player turn with input
 function player_turn(player::FractalFighter, opponent::FractalFighter)
@@ -119,22 +143,13 @@ function player_turn(player::FractalFighter, opponent::FractalFighter)
     end
 end
 
-# AI battle with video frames
+# AI battle
 function ai_battle(player::FractalFighter, enemy::FractalFighter)
-    if !isdir("frames")
-        mkdir("frames")
-    end
     turn = 1
     while player.health > 0 && enemy.health > 0
         println("\nTurn $turn")
-        println("$(player.name) health: $(player.health)")
-        println("$(enemy.name) health: $(enemy.health)")
-        
-        # Create frame
-        p1 = heatmap(mandelbrot(200, 200, 50), color=:viridis, title="$(player.name)\nHealth: $(round(player.health, digits=1))")
-        p2 = heatmap(julia(200, 200, 50, -0.7 + 0.27015im), color=:plasma, title="$(enemy.name)\nHealth: $(round(enemy.health, digits=1))")
-        p = plot(p1, p2, layout=(1,2), size=(800,400))
-        savefig(p, "frames/frame_$(lpad(turn, 3, '0')).png")
+        println("$(player.name) health: $(round(player.health, digits=1))")
+        println("$(enemy.name) health: $(round(enemy.health, digits=1))")
         
         if ai_turn(player, enemy)
             break
@@ -148,24 +163,11 @@ function ai_battle(player::FractalFighter, enemy::FractalFighter)
         sleep(0.5)
     end
     
-    # Final frame
-    winner = player.health > 0 ? player : enemy
-    p1 = heatmap(mandelbrot(200, 200, 50), color=:viridis, title="$(player.name)\nHealth: $(round(player.health, digits=1))")
-    p2 = heatmap(julia(200, 200, 50, -0.7 + 0.27015im), color=:plasma, title="$(enemy.name)\nHealth: $(round(enemy.health, digits=1))")
-    p = plot(p1, p2, layout=(1,2), size=(800,400), plot_title="$(winner.name) Wins!")
-    savefig(p, "frames/frame_$(lpad(turn, 3, '0')).png")
-    
     if player.health > 0
         println("\n$(player.name) wins!")
     else
         println("\n$(enemy.name) wins!")
     end
-    
-    # Create video
-    frame_files = sort([f for f in readdir("frames") if endswith(f, ".png")])
-    imgs = [load("frames/$f") for f in frame_files]
-    VideoIO.save("battle.mp4", imgs, framerate=2)
-    println("Video saved as battle.mp4")
 end
 
 # Interactive player battle
@@ -194,9 +196,9 @@ function player_battle(player::FractalFighter, enemy::FractalFighter)
     end
 end
 
-# Create fighters
-babies_mandelbrot = FractalFighter("Babies Mandelbrot", 100.0, 20.0)
-julia_sets = FractalFighter("Julia Sets", 100.0, 18.0)
+# Create fighters with abilities
+babies_mandelbrot = FractalFighter("Babies Mandelbrot", 100.0, 100.0, 20.0, 5.0, "Deep Zoom", false)
+julia_sets = FractalFighter("Julia Sets", 100.0, 100.0, 18.0, 4.0, "Iterate Heal", false)
 
 # Choose mode
 println("Choose mode: (i)nteractive player battle or (a)i demo")
