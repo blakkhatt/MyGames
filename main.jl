@@ -76,19 +76,17 @@ function ai_turn(fighter::FractalFighter, opponent::FractalFighter)
     end
 end
 
-# Player turn with input
-function player_turn(player::FractalFighter, opponent::FractalFighter)
-    println("Your turn! Choose: (a)ttack or (d)efend")
-    choice = readline()
-    if choice == "a"
-        return attack(player, opponent)
+# AI turn for both
+function ai_turn(fighter::FractalFighter, opponent::FractalFighter)
+    if rand() > 0.5
+        return attack(fighter, opponent)
     else
-        println("$(player.name) defends!")
+        println("$(fighter.name) defends!")
         return false
     end
 end
 
-# Game loop
+# Game loop - fully AI
 function battle(player::FractalFighter, enemy::FractalFighter)
     turn = 1
     while player.health > 0 && enemy.health > 0
@@ -96,17 +94,18 @@ function battle(player::FractalFighter, enemy::FractalFighter)
         println("$(player.name) health: $(player.health)")
         println("$(enemy.name) health: $(enemy.health)")
         
-        # Player turn
-        if player_turn(player, enemy)
+        # Player AI turn
+        if ai_turn(player, enemy)
             break
         end
         
-        # Enemy turn (AI)
+        # Enemy AI turn
         if ai_turn(enemy, player)
             break
         end
         
         turn += 1
+        sleep(1)  # Slow down for viewing
     end
     
     if player.health > 0
