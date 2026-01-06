@@ -143,13 +143,44 @@ function player_turn(player::FractalFighter, opponent::FractalFighter)
     end
 end
 
-# AI battle
+# AI battle with animated fractals
 function ai_battle(player::FractalFighter, enemy::FractalFighter)
+    if !isdir("frames")
+        mkdir("frames")
+    end
     turn = 1
     while player.health > 0 && enemy.health > 0
         println("\nTurn $turn")
         println("$(player.name) health: $(round(player.health, digits=1))")
         println("$(enemy.name) health: $(round(enemy.health, digits=1))")
+        
+        # Animate fractals: change parameters each turn
+        zoom = 1 + turn * 0.05
+        center_x = -0.5 + turn * 0.005
+        center_y = 0.0
+        y_range = range(center_y - 1.5/zoom, center_y + 1.5/zoom, length=200)
+        x_range = range(center_x - 2.0/zoom, center_x + 1.0/zoom, length=200)
+        
+        m = zeros(200, 200)
+        for i in 1:200, j in 1:200
+            c = x_range[j] + im * y_range[i]
+            z = 0 + 0im
+            iter = 0
+            while abs(z) < 2 && iter < 50
+                z = z^2 + c
+                iter += 1
+            end
+            m[i, j] = iter
+        end
+        
+        c_julia = -0.7 + 0.27015im + turn * 0.01 + im * turn * 0.005
+        j = julia(200, 200, 50, c_julia)
+        
+        # Create frame
+        p1 = heatmap(m, color=:viridis, title="$(player.name)\nHealth: $(round(player.health, digits=1))")
+        p2 = heatmap(j, color=:plasma, title="$(enemy.name)\nHealth: $(round(enemy.health, digits=1))")
+        p = plot(p1, p2, layout=(1,2), size=(800,400))
+        savefig(p, "frames/frame_$(lpad(turn, 3, '0')).png")
         
         if ai_turn(player, enemy)
             break
@@ -160,14 +191,27 @@ function ai_battle(player::FractalFighter, enemy::FractalFighter)
         end
         
         turn += 1
-        sleep(0.5)
+        sleep(0.2)
     end
+    
+    # Final frame
+    winner = player.health > 0 ? player : enemy
+    p1 = heatmap(m, color=:viridis, title="$(player.name)\nHealth: $(round(player.health, digits=1))")
+    p2 = heatmap(j, color=:plasma, title="$(enemy.name)\nHealth: $(round(enemy.health, digits=1))")
+    p = plot(p1, p2, layout=(1,2), size=(800,400), title="$(winner.name) Wins!")
+    savefig(p, "frames/frame_$(lpad(turn, 3, '0')).png")
     
     if player.health > 0
         println("\n$(player.name) wins!")
     else
         println("\n$(enemy.name) wins!")
     end
+    
+    # Create video
+    frame_files = sort([f for f in readdir("frames") if endswith(f, ".png")])
+    imgs = [load("frames/$f") for f in frame_files]
+    VideoIO.save("battle.mp4", imgs, framerate=3)
+    println("Animated video saved as battle.mp4")
 end
 
 # Interactive player battle
