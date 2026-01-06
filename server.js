@@ -20,7 +20,7 @@ const server = http.createServer((req, res) => {
         });
     } else {
         res.writeHead(200, {'Content-Type': 'text/html'});
-        res.end(fs.readFileSync('index.html', 'utf8'));
+        res.end(fs.readFileSync('snake.html', 'utf8'));
     }
 });
 
